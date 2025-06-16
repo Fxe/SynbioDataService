@@ -89,34 +89,26 @@ class EtlExperiment:
         self.engine = engine
         self.mio = minio
 
-    def etl(engine, mio):
-        '''
+    def get_plate_reader_filenames(self, minio_bucket, minio_path_to_plate_reader_files, regexpattern):
+        # Return list of file names that match the expected file name pattern.
+        objects = self.mio.list_objects(minio_bucket, prefix=minio_path_to_plate_reader_files)
+
+        filepaths = [obj.object_name for obj in objects]
+        filenames = [fn.split('/')[1] for fn in filepaths]
+        plate_reader_files = [fn for fn in filenames if re.match(regexpattern, fn)]
+
+        return plate_reader_files
+
+    def etl_plate(self, plate_data: DataFrame, plate_parameters: AddPlateParameters, start_date,
+                  exp_id, exp_index, minio_bucket_name='synbio'):
+        """
         Extracts and transforms plate reader data from MinIO storage,
         and stores it in MySQL database.
     
         Args:
     
         Returns:
-        
-        '''
-        
-        
-        # Functions
-        
-        
-        def get_plate_reader_filenames(
-            minio_bucket, minio_path_to_plate_reader_files, regexpattern
-        ):
-            # Return list of file names that match the expected file name pattern.
-            objects = mio.list_objects(
-                minio_bucket, prefix=minio_path_to_plate_reader_files
-            )
-            filepaths = [obj.object_name for obj in objects]
-            filenames = [fn.split('/')[1] for fn in filepaths]
-            plate_reader_files = [fn for fn in filenames if re.match(regexpattern, fn)]
-            
-            return plate_reader_files
-        
+        """
         
         def get_transfers(batch_dict, batch, plate, transfer):
             # Which transfer since beginning of experiment?
@@ -171,9 +163,9 @@ class EtlExperiment:
         contact_id = 1
         operation_id = f"{experiment_id}_operation"
         measurement_type = 'growth'
-        plate_reader_filenames = get_plate_reader_filenames(
-            minio_bucket_name, path_to_plate_reader_files, fname_pattern
-            )
+        plate_reader_filenames = self.get_plate_reader_filenames(minio_bucket_name,
+                                                                 path_to_plate_reader_files,
+                                                                 fname_pattern)
         transfer_layout = read_mio_csv(
             mio, minio_bucket_name, path_to_layout_files + 'transfer_layout.csv'
             )

@@ -1,0 +1,8 @@
+fastapi >= 0.115.12
+minio >= 7.2.15
+numpy >= 2.2.6
+pandas >= 2.2.3
+PyMySQL >= 1.1.1
+PyYAML >= 6.0.2
+SQLAlchemy >= 2.0.41
+uvicorn >= 0.34.2
