@@ -99,6 +99,29 @@ class EtlExperiment:
 
         return plate_reader_files
 
+    def load_layout_file(self, minio_bucket_name, layout_file_path):
+        # Read plate layout file.
+        response = None
+        df = None
+        try:
+            response = self.mio.get_object(minio_bucket_name, layout_file_path)
+            csv_data = response.data
+            df = pd.read_csv(io.BytesIO(csv_data), header=None)
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            if response:
+                response.close()
+                response.release_conn()
+            return df
+
+    def load_layout(self, minio_bucket_name, path_to_layout_files):
+        transfer_layout = self.load_layout_file(minio_bucket_name, path_to_layout_files + 'transfer_layout.csv')
+        rep_layout = self.load_layout_file(minio_bucket_name, path_to_layout_files + 'replicate_layout.csv')
+        strain_layout = self.load_layout_file(minio_bucket_name, path_to_layout_files + 'strain_layout.csv')
+        gc_layout = self.load_layout_file(minio_bucket_name, path_to_layout_files + 'growth_condition_layout.csv')
+        return transfer_layout, rep_layout, strain_layout, gc_layout
+
     def etl_plate(self, plate_data: DataFrame, plate_parameters: AddPlateParameters, start_date,
                   exp_id, exp_index, minio_bucket_name='synbio'):
         """
@@ -109,6 +132,9 @@ class EtlExperiment:
     
         Returns:
         """
+
+        transfer_layout, rep_layout, strain_layout, gc_layout = self.load_layout(minio_bucket_name,
+                                                                                 plate_parameters.layout)
         
         def get_transfers(batch_dict, batch, plate, transfer):
             # Which transfer since beginning of experiment?
